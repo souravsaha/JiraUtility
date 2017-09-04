@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane prefHeight="544.0" prefWidth="972.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.UiController">
+   <children>
+      <SplitPane dividerPositions="0.48762886597938143" layoutX="156.0" layoutY="172.0" prefHeight="544.0" prefWidth="972.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <items>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+               <children>
+                  <VBox layoutX="-7.0" prefHeight="542.0" prefWidth="285.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="-7.0" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="0.0">
+                     <children>
+                        <GridPane prefHeight="110.0" prefWidth="339.0" vgap="10.0">
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="205.0" minWidth="10.0" prefWidth="102.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="315.0" minWidth="10.0" prefWidth="267.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <Label text="Username" GridPane.rowIndex="1" />
+                              <Label text="Password" GridPane.rowIndex="2" />
+                              <TextField fx:id="username" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <PasswordField fx:id="password" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                              <Label text="SSO Login" textFill="#000511">
+                                 <font>
+                                    <Font name="System Bold" size="15.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                           <VBox.margin>
+                              <Insets left="25.0" right="75.0" top="50.0" />
+                           </VBox.margin>
+                        </GridPane>
+                        <GridPane vgap="10.0">
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="229.0" minWidth="10.0" prefWidth="125.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="344.0" minWidth="10.0" prefWidth="344.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <VBox.margin>
+                              <Insets left="25.0" right="25.0" top="75.0" />
+                           </VBox.margin>
+                           <children>
+                           	<ChoiceBox fx:id="templateCBox" prefHeight="31.0" prefWidth="178.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <Label text="Template" GridPane.rowIndex="1" />
+                              <Label text="Upload" textFill="#000511">
+                                 <font>
+                                    <Font name="System Bold" size="15.0" />
+                                 </font>
+                              </Label>
+                              <Label text="Select File" GridPane.rowIndex="2" />
+
+                              <HBox prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                                 <children>
+                                    <TextField fx:id="browse" HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="browseButton" mnemonicParsing="false" onAction="#showFileDialog" text="Browse" />
+                                 </children>
+                              </HBox>
+                              <Label text="Jira Env." GridPane.rowIndex="3" />
+                              <ChoiceBox fx:id="jira" prefHeight="31.0" prefWidth="178.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                              <HBox prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                                 <children>
+                                    <Button fx:id="submit" mnemonicParsing="false" onAction="#submitOnClick" text="Submit" />
+                                    <Region prefHeight="31.0" prefWidth="13.0" />
+                                    <Button fx:id="cancel" layoutX="104.0" layoutY="10.0" mnemonicParsing="false" onAction="#closeApplication" text="Close" />
+                                 </children>
+                              </HBox>
+                              
+                           </children>
+                        </GridPane>
+                     </children>
+                  </VBox>
+               </children>
+            </AnchorPane>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+               <children>
+                  <VBox layoutX="60.0" layoutY="88.0" prefHeight="542.0" prefWidth="493.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" prefHeight="36.0" prefWidth="493.0">
+                           <children>
+                              <Label text="Logs">
+                                 <HBox.margin>
+                                    <Insets left="10.0" />
+                                 </HBox.margin>
+                              </Label>
+                              <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+                              <Button fx:id="clear" mnemonicParsing="false" onAction="#clearLogs" text="Clear" />
+                              <Region layoutX="52.0" layoutY="10.0" prefHeight="36.0" prefWidth="8.0" />
+                              <Button fx:id="download" layoutX="401.0" layoutY="13.0" mnemonicParsing="false" onAction="#showSaveFileDialog" text="Download" />
+                           </children>
+                        </HBox>
+                        <TextArea fx:id="log" prefHeight="522.0" prefWidth="493.0" VBox.vgrow="ALWAYS" />
+                     </children>
+                  </VBox>
+               </children></AnchorPane>
+        </items>
+      </SplitPane>
+   </children>
+</AnchorPane>
