@@ -210,7 +210,7 @@ public class UiController implements Initializable {
 		
 		
 		// added list of values 
-		ObservableList<String> list = FXCollections.observableArrayList("Story-Task-Defect","Sub Task");
+		ObservableList<String> list = FXCollections.observableArrayList("Issue","Sub Task");
 		templateCBox.setItems(list);
 		
 		return templateCBox;
@@ -246,7 +246,40 @@ public class UiController implements Initializable {
 		alert.setContentText(s);
 		//alert.show();
 	}
+	
+	public boolean checkValidFile()
+	{
+		File file = new File(browse.getText());
+		return (file.exists()) ? true : false; 
+	}
+	
+	public boolean checkAllFields()
+	{
+		if(username.getText().trim().isEmpty() || password.getText().trim().isEmpty() || browse.getText().trim().isEmpty() || jira.getSelectionModel().isEmpty() || templateCBox.getSelectionModel().isEmpty())
+			return true;
+		else 
+			return false;
+						
+	}
+	
 	public void submitOnClick(ActionEvent event) throws InterruptedException{
+		
+		//check if all fields are there
+		if(checkAllFields())
+		{
+			log.appendText("All fields are mandatory. Please give all the inputs\n");
+			return;
+		}
+		
+		// check if the file path is correct
+		if(!checkValidFile())
+		{
+			log.appendText("File path is not correct. Please give correct file \n ");
+			return;
+		}
+			
+		
+		
 		Thread jiraTaskhandler=null;
 		try {
 			// pass template in the constructor

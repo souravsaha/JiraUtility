@@ -3,6 +3,7 @@
  */
 package com.oracle.hed.relops.bean.service;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 
@@ -45,11 +46,11 @@ public class JiraAsyncHandler implements Runnable{
 		this.template=template;
 		this.alert = alert;
 	}
-
+	
 	public void processTask(){
 		JiraRestClient restClient=new JiraRestClient(username, password,textArea,jiraUrl,template);
 		List<SubTaskResult> listOfCreatedTasks=null;
-		
+				
 		String taskType;
 			textArea.appendText("\nProcessing Started\n");
 			textArea.appendText( "This might take few minutes\n");
@@ -84,7 +85,7 @@ public class JiraAsyncHandler implements Runnable{
 		    			}
 					}
 				}
-				textArea.appendText("\n--------------------------------------------------------------------------------------------\n");
+				textArea.appendText("\n----------------------------------------------------------------------------------------------\n");
 				// labda function to move the conrtrol to ui
 				Platform.runLater(    
 				    ()-> {

@@ -19,5 +19,6 @@
 	<classpathentry kind="lib" path="lib/pop3.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.6.1.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-2.6.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/soursaha.ORADEV/Downloads/gson-2.8.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

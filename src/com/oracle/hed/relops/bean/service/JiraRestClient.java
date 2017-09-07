@@ -7,9 +7,10 @@ import java.io.Reader;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import com.oracle.hed.relops.bean.excel.Type;
 
 import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.HttpClient;
@@ -27,12 +28,19 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.oracle.excel.util.helper.CommonUtil;
 import com.oracle.excel.util.helper.ExcelParser;
 import com.oracle.hed.relops.bean.SubTaskResult;
 import com.oracle.hed.relops.bean.excel.JiraSubtask;
 import com.oracle.hed.relops.bean.excel.JiraTask;
 
+import application.vo.ClassInner;
+import application.vo.ClassOuter;
+import application.vo.ErrorMsg;
+import application.vo.Value;
 import javafx.scene.control.TextArea;
 //import javafx.scene.text.TextArea;
 
@@ -61,12 +69,16 @@ public class JiraRestClient {
 
 	public static final String SUBTASK_URL_PATTERN = "https://jira-uat.us.oracle.com/jira/browse/";
 
+	private static final String EPIC_ERROR="epic.error.not.found"; 
+	
 	private String user;
 	private String pass;
 	private TextArea log;
 
 	private String jiraUrl;
 	private String template;
+
+	private Gson gson = new Gson();
 
 	public String getJiraUrl() {
 		return jiraUrl;
@@ -170,7 +182,6 @@ public class JiraRestClient {
 			client.getParams().setCookiePolicy(CookiePolicy.RFC_2109);
 
 			client.getParams().setParameter(HttpClientParams.USER_AGENT, "Mozilla/5.0");
-
 			client.getParams().setParameter(HttpClientParams.ALLOW_CIRCULAR_REDIRECTS, true);
 			client.setState(state);
 
@@ -179,8 +190,8 @@ public class JiraRestClient {
 			GetMethod getMethod = new GetMethod(URL);
 			client.executeMethod(getMethod);
 			String resp = getResponse(getMethod);
-			
-			//JsonParser.configure(Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+
+			// JsonParser.configure(Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
 			Document doc = Jsoup.parse(resp, URL);
 
 			// Did we end up on the SSO page?
@@ -228,8 +239,7 @@ public class JiraRestClient {
 					client.getHttpConnectionManager().getParams().setSoTimeout(readTimeout);
 					client.executeMethod(postMethod);
 					resp = getResponse(postMethod);
-					
-					
+
 					System.out.println("response got while invoking post method" + resp);
 					if (postMethod.getStatusCode() == 200) {
 						System.out.println("Call to Post method was successful");
@@ -278,7 +288,29 @@ public class JiraRestClient {
 		return list;
 	}
 
+	// check correct project code
+	public boolean checkCorrectProject(String projectCode) {
+		if (projectCode.equals("OFCC") || projectCode.equals("OFSR") || projectCode.equals("OFA")
+				|| projectCode.equals("HEDHES") || projectCode.equals("SCTI"))
+			return true;
+		else
+			return false;
+	}
+
+	public boolean checkCorrectTaskType(String taskType) {
+		if (taskType.equals("Story") || taskType.equals("Defect") || taskType.equals("Task"))
+			return true;
+		else
+			return false;
+	}
+
 	// parse new Excel Template with issues i.e story,task
+	/**
+	 * @param stream
+	 * @return
+	 * @throws InterruptedException
+	 * @throws ParseException
+	 */
 	public ArrayList<SubTaskResult> processNewExcelToJira(InputStream stream) throws InterruptedException {
 		// for task list
 		List<JiraTask> taskList = null;
@@ -288,24 +320,36 @@ public class JiraRestClient {
 		ArrayList<SubTaskResult> resultList = new ArrayList<SubTaskResult>();
 
 		taskList = excelParser.parseExcel(stream, JiraTask.class);
-		int rowCount=2;
-		System.out.println("Task List Size: "+ taskList.size());
-		
+		int rowCount = 2;
+		System.out.println("Task List Size: " + taskList.size());
+
 		if (taskList != null) {
 			System.out.println("New Template Excel Output: ");
 			for (JiraTask taskIterator : taskList) {
 				System.out.println("task output: " + taskIterator.toString());
-				log.appendText("processing row :"+rowCount+"\n");
+				log.appendText("Processing row :" + rowCount + "\n");
 				rowCount++;
-				
+
 				boolean isTaskExists = false;
-				
+
 				log.appendText(
 						"\n\nTrying to create Task :" + "<" + taskIterator.getEpic() + "," + taskIterator.getTaskType()
 								+ "," + taskIterator.getTaskSummary() + "," + taskIterator.getAssignee() + ","
 								+ taskIterator.getComponents() + taskIterator.getDescription() + ">\n");
 
 				if (taskIterator.getProjectCode().equals("") || taskIterator.getProjectCode() == null) {
+					continue;
+				}
+
+				// task type is of 3 type only.
+				if (!checkCorrectTaskType(taskIterator.getTaskType())) {
+					log.appendText("Task Type/ Issue Type is not correct. Ignoring it. \n");
+					continue;
+				}
+
+				if (!checkCorrectProject(taskIterator.getProjectCode())) {
+					log.appendText(
+							"As of now we are supporting only OFCC/ OFSR/ OFA/ HEDHES / SCTI project code. \nPlease correct the project code and retry again");
 					continue;
 				}
 
@@ -320,44 +364,83 @@ public class JiraRestClient {
 
 				String url = getActualUrl() + "/jira/rest/api/2/issue";
 
-				// generate body
-			/*	String body = "{\r\n    \"fields\":\r\n    {\r\n        \"project\":\r\n        {\r\n            \"key\": \""
-						+ taskIterator.getProjectCode()
-						+ "\"\r\n        },\r\n        \"parent\":\r\n        {\r\n            \"key\": \""
-						+ taskIterator.getEpic() + "\"\r\n        },\r\n        \"summary\": \""
-						+ taskIterator.getTaskSummary() + " \",\r\n        \"description\": \""
-						+ taskIterator.getDescription() + "\",\r\n\t\t\"assignee\":\r\n\t\t{\r\n\t\t\t\"name\":\""
-						+ taskIterator.getAssignee()
-						+ "\"\r\n\t\t},\r\n        \"issuetype\":\r\n        {\r\n            \"id\": \""
-						+ Type.DEFECT_TYPE.getType() + "\"\r\n        }\r\n    }\r\n}";*/
-				String parentTag = "";
+				// lookup the component code for Components from rest call
 				
-				if (!CommonUtil.safeTrim(taskIterator.getEpic()).isEmpty()){
-				
-				//parentTag = "\r\n        \"parent\":\r\n        {\r\n            \"key\": \""
-				//		+ taskIterator.getEpic() + "\"\r\n        },";
-
-					parentTag = "\r\n        \"customfield_10014\":\r\n        {\r\n            \"value\": \"key:"
-							+ taskIterator.getEpic() + "\"\r\n        },";							
-				
-					
+				String jiraCompAPI = "/jira/rest/api/2/project/" + taskIterator.getProjectCode() + "/components";
+				String urlComponent = getActualUrl() + jiraCompAPI;
+				String componentResponse = get(urlComponent, readTimeout);
+				//System.err.println(componentResponse);
+								
+				List<Value> componentIdList = Arrays.asList(gson.fromJson(componentResponse, Value[].class));
+				String componentId = null;
+				for (Value value : componentIdList) {
+					if (value.getName().equals(taskIterator.getComponents())) {
+						componentId = value.getId();
+						break;
+					}
 				}
-				String body="{\r\n    \"fields\":\r\n    {\r\n        \"project\":\r\n        {\r\n            \"key\": \""
-						+ taskIterator.getProjectCode()
-						+ "\"\r\n        },"+parentTag+"\r\n             \"summary\": \""
-						+ taskIterator.getTaskSummary() + " \",\r\n        \"description\": \""
-						+ taskIterator.getDescription().replaceAll("\\n", "\\\\n") + "\",\r\n\t\t\"assignee\":\r\n\t\t{\r\n\t\t\t\"name\":\""
-						+ taskIterator.getAssignee()
-						+ "\"\r\n\t\t},\r\n        \"issuetype\":\r\n        {\r\n            \"id\": \""
-						+ taskIterator.getTaskTypeCode().getType() + "\"\r\n        }\r\n    }\r\n}";
-				System.out.println("body="+body);
 				
+				if(componentId == null)
+				{
+					log.appendText("Compnent Name is not correct. Please check the component and try again. \n");
+					continue;
+				}
+				// generate body
+				ClassOuter outer = new ClassOuter();
+				ClassInner inner = new ClassInner();
+				outer.setFields(inner);
+				inner.setSummary(taskIterator.getTaskSummary());
+				inner.setDescription(taskIterator.getDescription());
+				inner.setName(taskIterator.getAssignee());
+				inner.setIssueTypeId(taskIterator.getTaskTypeCode().getType());
+				inner.setProjectKey(taskIterator.getProjectCode());
+				// do a get call and look up the value
+				inner.addComponent(componentId);
+				// as for defect we don't have epic link
+				if (!taskIterator.getTaskType().equals("Defect"))
+					inner.setCustomfield_10014(taskIterator.getEpic());
+
+				String body = gson.toJson(outer);
+
+				/*
+				 * String body =
+				 * "{\r\n    \"fields\":\r\n    {\r\n        \"project\":\r\n        {\r\n            \"key\": \""
+				 * + taskIterator.getProjectCode() + "\"\r\n        }," +
+				 * parentTag + "\r\n             \"summary\": \"" +
+				 * taskIterator.getTaskSummary() +
+				 * " \",\r\n        \"description\": \"" +
+				 * taskIterator.getDescription().replaceAll("\\n", "\\\\n") +
+				 * "\",\r\n\t\t\"assignee\":\r\n\t\t{\r\n\t\t\t\"name\":\"" +
+				 * taskIterator.getAssignee() +
+				 * "\"\r\n\t\t},\r\n        \"issuetype\":\r\n        {\r\n            \"id\": \""
+				 * + taskIterator.getTaskTypeCode().getType() +
+				 * "\"\r\n        }\r\n    }\r\n}";
+				 */
+
+				System.out.println("body=" + body);
+
 				do {
 					System.out.println("Timeout set to " + readTimeout + " milliseconds");
-
 					response = CommonUtil.safeTrim(post(url, body, readTimeout));
 					
-					System.out.println("response="+response);
+					ErrorMsg errorStr= gson.fromJson(response, ErrorMsg.class);
+					System.err.println("Error message is : " +errorStr.getErrors().getAssignee());
+					
+					
+					// epic is wrong
+					for (String v : errorStr.getErrorMessages()) {
+						if(v.contains(EPIC_ERROR))
+						{
+							System.err.println("Epic  message is : " +v);
+							log.appendText("Epic Name is not correct. Please check and try again\n");
+						}
+					}
+					
+					//if assignee is wrong
+					if(errorStr.getErrors().getAssignee() !=null)
+						log.appendText(errorStr.getErrors().getAssignee()+"\n");
+					
+					System.out.println("response=" + response);
 					retryNeeded = false;
 					if (response.equals(UNKNOWN_HOST_FAULT_CODE)) {
 						System.out
@@ -409,7 +492,7 @@ public class JiraRestClient {
 					} else {
 						SubTaskResult subTaskResult = parseJsonString(response);
 						subTaskResult.setSummary(taskIterator.getTaskSummary());
-						if(subTaskResult.getId()!=null)
+						if (subTaskResult.getId() != null)
 							log.appendText("Issue created successfully with id <" + subTaskResult.getId() + ">\n");
 						else
 							log.appendText("Issue is not created successfully \n");
@@ -448,8 +531,8 @@ public class JiraRestClient {
 		ExcelParser excelParser = new ExcelParser(log, 6);
 
 		list = excelParser.parseExcel(stream, JiraSubtask.class);
-		int rowCount=2;
-		
+		int rowCount = 2;
+
 		if (list != null) {
 			for (JiraSubtask subtask : list) {
 				boolean isTaskExists = false;
@@ -458,13 +541,21 @@ public class JiraRestClient {
 				log.appendText("\n\nTrying to create subtask :" + "<" + subtask.getStory() + ","
 						+ subtask.getSubTaskSummary() + "," + subtask.getDescription() + "," + subtask.getAssignee()
 						+ "," + subtask.getOriginalEstimate() + ">\n");
-				
-				log.appendText("processing row :"+rowCount+"\n");
+
+				log.appendText("processing row :" + rowCount + "\n");
 				rowCount++;
-				
+
 				if (subtask.getProjectCode().equals("") || subtask.getProjectCode() == null) {
+					log.appendText("Project code cannot be empty \n");
 					continue;
 				}
+				//if project code is not correct
+				if (!checkCorrectProject(subtask.getProjectCode())) {
+					log.appendText(
+							"As of now we are supporting only OFCC/ OFSR/ OFA/ HEDHES / SCTI project code. \nPlease correct the project code and retry again");
+					continue;
+				}
+				
 				isTaskExists = isTaskCreated(subtask.getStory());
 				if (!isTaskExists) {
 					System.out.println("Issue/parent task <" + subtask.getStory()
@@ -480,24 +571,38 @@ public class JiraRestClient {
 				// String url =
 				// "https://jira-uat.us.oracle.com/jira/rest/api/2/issue";
 				String url = getActualUrl() + "/jira/rest/api/2/issue";
-				
-				if(subtask.getDescription().contains("\n"))
-					System.out.println("new line found"+subtask.getDescription().replaceAll("\n", " "));
-				
-				String body = "{\r\n    \"fields\":\r\n    {\r\n        \"project\":\r\n        {\r\n            \"key\": \""
-						+ subtask.getProjectCode()
-						+ "\"\r\n        },\r\n        \"parent\":\r\n        {\r\n            \"key\": \""
-						+ subtask.getStory() + "\"\r\n        },\r\n        \"summary\": \""
-						+ subtask.getSubTaskSummary() + " \",\r\n        \"description\": \"" + subtask.getDescription().replaceAll("\\n", "\\\\n")
-						+ "\",\r\n\t\t\"assignee\":\r\n\t\t{\r\n\t\t\t\"name\":\"" + subtask.getAssignee()
-						+ "\"\r\n\t\t},\r\n\t\t \"timetracking\": {\r\n            \"originalEstimate\": \""
-						+ subtask.getOriginalEstimate()
-						+ "\"\r\n        },\r\n        \"issuetype\":\r\n        {\r\n            \"id\": \"5\"\r\n        }\r\n    }\r\n}";
+
+				// generate body
+
+				ClassOuter outer = new ClassOuter();
+				ClassInner inner = new ClassInner();
+				outer.setFields(inner);
+				inner.setSummary(subtask.getSubTaskSummary());
+				inner.setDescription(subtask.getDescription());
+				inner.setName(subtask.getAssignee());
+				inner.setIssueTypeId("5");
+				inner.setOriginalEstimate(subtask.getOriginalEstimate());
+				inner.setParentKey(subtask.getStory());
+				inner.setProjectKey(subtask.getProjectCode());
+
+				String body = gson.toJson(outer);
 
 				do {
 					System.out.println("Timeout set to " + readTimeout + " milliseconds");
-					System.out.println("Body: \n"+body);
+					System.out.println("Body: \n" + body);
 					response = CommonUtil.safeTrim(post(url, body, readTimeout));
+					
+					ErrorMsg errorStr= gson.fromJson(response, ErrorMsg.class);
+					// check if assignee is not correct
+					if(errorStr.getErrors().getAssignee() !=null)
+						log.appendText(errorStr.getErrors().getAssignee()+"\n");
+					
+					// check if estimate date is correct or not. 
+					if(errorStr.getErrors().getTimetracking() !=null)
+						log.appendText(errorStr.getErrors().getTimetracking()+"\n");
+					
+					
+					
 					retryNeeded = false;
 					if (response.equals(UNKNOWN_HOST_FAULT_CODE)) {
 						System.out
@@ -546,17 +651,16 @@ public class JiraRestClient {
 					} else {
 						SubTaskResult subTaskResult = parseJsonString(response);
 						subTaskResult.setSummary(subtask.getSubTaskSummary());
-						//debug 						
-						if(subTaskResult.getId()!=null)
+						// debug
+						if (subTaskResult.getId() != null)
 							log.appendText("Subtask created successfully with id <" + subTaskResult.getId() + ">\n");
 						else
-							log.appendText("Subtask is not created successfully "+ "\n");
+							log.appendText("Subtask is not created successfully " + "\n");
 						resultList.add(subTaskResult);
 					}
 				} while (retryNeeded && retryCount >= 0);
 			}
-		}
-		else
+		} else
 			log.appendText("Excel sheet is not properly formatted. \n");
 		return resultList;
 
@@ -623,6 +727,7 @@ public class JiraRestClient {
 			GetMethod getMethod = new GetMethod(URL);
 			client.executeMethod(getMethod);
 			String resp = getResponse(getMethod);
+			System.out.println(getMethod.getStatusCode());
 			// System.out.println(resp);
 
 			Document doc = Jsoup.parse(resp, URL);
@@ -646,7 +751,8 @@ public class JiraRestClient {
 
 				// this is where authentication happens
 				client.executeMethod(post);
-
+				System.out.println("Status code of SSO: "+ post.getStatusCode());
+				
 				// Were we redirected back to where we came from?
 				if (post.getStatusCode() == 302) {
 					String location = post.getResponseHeader("Location").getValue();
@@ -796,8 +902,9 @@ public class JiraRestClient {
 		if (!parentTaskId.isEmpty()) {
 			do {
 				System.out.println("Timeout set to " + readTimeout + " milliseconds");
-				//url = "https://jira-uat.us.oracle.com/jira/rest/api/2/issue/" + parentTaskId;
-				url = getActualUrl()+"/jira/rest/api/2/issue/" + parentTaskId;
+				// url = "https://jira-uat.us.oracle.com/jira/rest/api/2/issue/"
+				// + parentTaskId;
+				url = getActualUrl() + "/jira/rest/api/2/issue/" + parentTaskId;
 				response = CommonUtil.safeTrim(get(url, readTimeout));
 				retryNeeded = false;
 				if (response.equals(UNKNOWN_HOST_FAULT_CODE)) {
