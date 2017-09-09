@@ -16,7 +16,7 @@ public class Main extends Application {
 			AnchorPane root=FXMLLoader.load(getClass().getResource("/application/JiraUI.fxml"));
 			Scene scene = new Scene(root);
 			primaryStage.setScene(scene);
-			primaryStage.setTitle("Jira Utility 1.02 ");
+			primaryStage.setTitle("Jira Utility 1.05 ");
 			primaryStage.show();
 		} catch(Exception e) {
 			e.printStackTrace();

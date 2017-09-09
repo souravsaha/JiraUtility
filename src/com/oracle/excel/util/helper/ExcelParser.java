@@ -115,7 +115,14 @@ public class ExcelParser {
 						if(columnPool.getColumnPool().length>column){
 							LOGGER.log(Level.INFO,
 									"Inside|parseExcelSheet(InputStream inputstream, String sheetName)|ExcelParser| Excel sheet not correctly formatted, Expected No. Of Columns: 6");
-							log.appendText("Excel sheet is not correctly formatted or you may have choosed wrong template file \n");
+							log.appendText("Excel sheet is not correctly formatted or you may have chosen wrong template file \n");
+							
+							break;
+						}
+						else if(columnPool.getColumnPool().length < column){
+							LOGGER.log(Level.INFO,
+									"Inside|parseExcelSheet(InputStream inputstream, String sheetName)|ExcelParser| Excel sheet not correctly formatted, Expected No. Of Columns: 6");
+							log.appendText("Excel sheet is not correctly formatted or you may have chosen wrong template file \n");
 							
 							break;
 						}

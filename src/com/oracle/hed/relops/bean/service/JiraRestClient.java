@@ -41,6 +41,7 @@ import application.vo.ClassInner;
 import application.vo.ClassOuter;
 import application.vo.ErrorMsg;
 import application.vo.Value;
+import exceptionHandler.AuthenticationFailureException;
 import javafx.scene.control.TextArea;
 //import javafx.scene.text.TextArea;
 
@@ -78,6 +79,7 @@ public class JiraRestClient {
 	private String jiraUrl;
 	private String template;
 
+	private int postResponseCode;
 	private Gson gson = new Gson();
 
 	public String getJiraUrl() {
@@ -241,8 +243,10 @@ public class JiraRestClient {
 					resp = getResponse(postMethod);
 
 					System.out.println("response got while invoking post method" + resp);
-					if (postMethod.getStatusCode() == 200) {
+					System.out.println("postmethod code: "+postMethod.getStatusCode()+"\n");
+					if (postMethod.getStatusCode() >= 200 && postMethod.getStatusCode() < 300) {
 						System.out.println("Call to Post method was successful");
+						postResponseCode= postMethod.getStatusCode();
 					}
 					if (postMethod.getStatusCode() >= 500) {
 						System.out.println("Server side error occurred");
@@ -423,23 +427,27 @@ public class JiraRestClient {
 					System.out.println("Timeout set to " + readTimeout + " milliseconds");
 					response = CommonUtil.safeTrim(post(url, body, readTimeout));
 					
-					ErrorMsg errorStr= gson.fromJson(response, ErrorMsg.class);
-					System.err.println("Error message is : " +errorStr.getErrors().getAssignee());
 					
+					//System.err.println("Error message is : " +errorStr.getErrors().getAssignee());
 					
+					//System.out.println(errorStr.toString());
+					//errorStr.get
+					if(postResponseCode >= 300)
+					{	
 					// epic is wrong
-					for (String v : errorStr.getErrorMessages()) {
-						if(v.contains(EPIC_ERROR))
-						{
-							System.err.println("Epic  message is : " +v);
-							log.appendText("Epic Name is not correct. Please check and try again\n");
+						ErrorMsg errorStr= gson.fromJson(response, ErrorMsg.class);
+						for (String v : errorStr.getErrorMessages()) {
+							if(v.contains(EPIC_ERROR))
+							{
+								System.err.println("Epic  message is : " +v);
+								log.appendText("Epic Name is not correct. Please check and try again\n");
+							}
 						}
-					}
 					
 					//if assignee is wrong
-					if(errorStr.getErrors().getAssignee() !=null)
-						log.appendText(errorStr.getErrors().getAssignee()+"\n");
-					
+						if(errorStr.getErrors().getAssignee() !=null)
+							log.appendText(errorStr.getErrors().getAssignee()+"\n");
+					}
 					System.out.println("response=" + response);
 					retryNeeded = false;
 					if (response.equals(UNKNOWN_HOST_FAULT_CODE)) {
@@ -592,16 +600,20 @@ public class JiraRestClient {
 					System.out.println("Body: \n" + body);
 					response = CommonUtil.safeTrim(post(url, body, readTimeout));
 					
-					ErrorMsg errorStr= gson.fromJson(response, ErrorMsg.class);
-					// check if assignee is not correct
-					if(errorStr.getErrors().getAssignee() !=null)
-						log.appendText(errorStr.getErrors().getAssignee()+"\n");
+					if(postResponseCode >= 300)
+					{
+						ErrorMsg errorStr= gson.fromJson(response, ErrorMsg.class);
 					
-					// check if estimate date is correct or not. 
-					if(errorStr.getErrors().getTimetracking() !=null)
-						log.appendText(errorStr.getErrors().getTimetracking()+"\n");
+						System.out.println(errorStr.toString());
 					
+						// check if assignee is not correct
+						if(errorStr.getErrors().getAssignee() !=null)
+							log.appendText(errorStr.getErrors().getAssignee()+"\n");
 					
+						// check if estimate date is correct or not. 
+						if(errorStr.getErrors().getTimetracking() !=null)
+							log.appendText(errorStr.getErrors().getTimetracking()+"\n");
+					}
 					
 					retryNeeded = false;
 					if (response.equals(UNKNOWN_HOST_FAULT_CODE)) {
@@ -781,6 +793,13 @@ public class JiraRestClient {
 						System.out.println("Server side error occurred");
 						return SERVER_FAULT_CODE;
 					}
+				}
+				
+				else if (post.getStatusCode() == 200)
+				{
+					System.out.println("Authentication Failed. \n");
+					log.appendText("Please check username and password and try again \n");
+					throw new AuthenticationFailureException("Please check username and password. \n");
 				}
 			}
 			return resp;

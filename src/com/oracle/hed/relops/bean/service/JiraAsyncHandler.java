@@ -7,17 +7,20 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+
 import com.oracle.excel.util.helper.CommonUtil;
 import com.oracle.hed.relops.bean.SubTaskResult;
 
 import application.UiController;
+import exceptionHandler.AuthenticationFailureException;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Alert.AlertType;
 
-
+import exceptionHandler.AuthenticationFailureException;
 
 
 
@@ -85,7 +88,7 @@ public class JiraAsyncHandler implements Runnable{
 		    			}
 					}
 				}
-				textArea.appendText("\n----------------------------------------------------------------------------------------------\n");
+				textArea.appendText("\n--------------------------------------------------------------------------------------------------\n");
 				// labda function to move the conrtrol to ui
 				Platform.runLater(    
 				    ()-> {
@@ -95,7 +98,8 @@ public class JiraAsyncHandler implements Runnable{
 				);
 				
 								
-			} catch (Exception e) 
+			}
+			catch (Exception e) 
 			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
