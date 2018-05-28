@@ -23,7 +23,7 @@ public class TestPost {
 	 */
 	public static void main(String[] args) {
 		
-		final String pass = "BQFH9fQV";
+		final String pass = "******";
 		final String uatUrl = "https://jira-uat.us.oracle.com/jira/rest/api/2/issue";
 		
 		JiraRestClient jiraClient=new JiraRestClient("sourav.saha@oracle.com", pass);
